@@ -18,6 +18,7 @@ For our experiments and comparisons, we used algorithms provided in the followin
  - **OIGH:** [Data privacy preservation algorithm with k-anonymity](https://link.springer.com/article/10.1007/s11280-021-00922-2)
 
 We gratefully acknowledge the authors of ATG-Soft for sharing codes.
+
 We use the implementation of OIGH from [this repo](https://github.com/Nuclearstar/K-Anonymity)
 
 If you use this repository, please make sure to also cite the original works. 
