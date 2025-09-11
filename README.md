@@ -14,12 +14,12 @@ For our experiments and comparisons, we used algorithms provided in the followin
 
 
  - **ATG-Soft:** [Adaptative generalisation over a value hierarchy for the k-anonymisation of Origin–Destination matrices](https://www.sciencedirect.com/science/article/pii/S0968090X23002255)
- - **Modrian:** [Mondrian Multidimensional K-Anonymity](https://ieeexplore.ieee.org/abstract/document/1617393)
+ - **Mondrian:** [Mondrian Multidimensional K-Anonymity](https://ieeexplore.ieee.org/abstract/document/1617393)
  - **OIGH:** [Data privacy preservation algorithm with k-anonymity](https://link.springer.com/article/10.1007/s11280-021-00922-2)
 
 We gratefully acknowledge the authors of ATG-Soft for sharing codes.
 
-We use the implementation of OIGH from [this repo](https://github.com/Nuclearstar/K-Anonymity)
+We use the implementation of Mondrian from [this repo](https://github.com/Nuclearstar/K-Anonymity)
 
 If you use this repository, please make sure to also cite the original works. 
 
