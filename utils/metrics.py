@@ -21,8 +21,6 @@ from collections import Counter
 from typing import Dict, Set, List, Optional, Tuple
 from geopy.distance import geodesic
 
-
-
 def compute_discernability_and_cavg(df: pd.DataFrame, k: int, suppressed_count: int = 0) -> dict:
     """
     compute C_DM e C_AVG for dataset OD generalization (with suppression).
@@ -87,7 +85,6 @@ def compute_discernability_and_cavg_weight(df: pd.DataFrame, k: int, suppressed_
         'k': k
     }
     
-
 def compute_discernability_and_cavg_ATG(df: pd.DataFrame, k: int, suppressed_count: int = 0) -> dict:
     """
     Calcola C_DM e C_AVG per un dataset OD generalizzato.
@@ -125,149 +122,6 @@ def compute_discernability_and_cavg_ATG(df: pd.DataFrame, k: int, suppressed_cou
         'k': k
     }
 
-# Esempio di utilizzo
-metrics = compute_discernability_and_cavg(od_matrix_agg, k=10, suppressed_count=suppressed_count)
-print("\n📊 Metrics di Discernibilità e CAVG:")
-print(f"C_DM: {metrics['C_DM']:,}")
-print(f"C_AVG: {metrics['C_AVG']:.4f}")
-
-
-
-def calculate_generalization_distance_metric_ATG(df: pd.DataFrame, od_matrix_generalized: pd.DataFrame) -> Dict:
-   
-   print("🔍 Calcolo metrica di distanza post-generalizzazione...")
-   
-   # 1. Crea mapping da esagoni originali a esagoni generalizzati
-   start_original_to_generalized = {}
-   end_original_to_generalized = {}
-   
-   # Ottieni tutti gli esagoni generalizzati unici
-   generalized_start_h3 = set(od_matrix_generalized['start_h3'].unique())
-   generalized_end_h3 = set(od_matrix_generalized['end_h3'].unique())
-   
-   # Per ogni esagono originale, trova l'esagono generalizzato corrispondente
-   unique_start_h3 = df['start_h3'].unique()
-   unique_end_h3 = df['end_h3'].unique()
-   
-   print(f"📊 Mappatura {len(unique_start_h3)} esagoni origine...")
-   for original_h3 in unique_start_h3:
-       generalized_h3 = find_generalized_hexagon(original_h3, generalized_start_h3)
-       if generalized_h3:
-           start_original_to_generalized[original_h3] = generalized_h3
-   
-   print(f"📊 Mappatura {len(unique_end_h3)} esagoni destinazione...")
-   for original_h3 in unique_end_h3:
-       generalized_h3 = find_generalized_hexagon(original_h3, generalized_end_h3)
-       if generalized_h3:
-           end_original_to_generalized[original_h3] = generalized_h3
-   
-   # 3. Calcola distanze per i punti di partenza
-   start_distances = []
-   start_coords = []
-   
-   for idx, row in df.iterrows():
-       original_h3 = row['start_h3']
-       original_coords = (row['start_lat'], row['start_lon'])
-       
-       if original_h3 in start_original_to_generalized:
-           generalized_h3 = start_original_to_generalized[original_h3]
-           generalized_coords = h3.cell_to_latlng(generalized_h3)
-           
-           distance = geodesic(original_coords, generalized_coords).meters
-           
-           start_distances.append(distance)
-           start_coords.append({
-               'original_h3': original_h3,
-               'generalized_h3': generalized_h3,
-               'original_coords': original_coords,
-               'generalized_coords': generalized_coords,
-               'distance': distance
-           })
-   
-   # 4. Calcola distanze per i punti di destinazione
-   end_distances = []
-   end_coords = []
-   
-   for idx, row in df.iterrows():
-       original_h3 = row['end_h3']
-       original_coords = (row['end_lat'], row['end_lon'])
-       
-       if original_h3 in end_original_to_generalized:
-           generalized_h3 = end_original_to_generalized[original_h3]
-           generalized_coords = h3.cell_to_latlng(generalized_h3)
-           
-           distance = geodesic(original_coords, generalized_coords).meters
-               
-           end_distances.append(distance)
-           end_coords.append({
-               'original_h3': original_h3,
-               'generalized_h3': generalized_h3,
-               'original_coords': original_coords,
-               'generalized_coords': generalized_coords,
-               'distance': distance
-           })
-   
-   # 5. Calcola statistiche
-   results = {
-       'start_distances': {
-           'mean': np.mean(start_distances) if start_distances else 0,
-           'median': np.median(start_distances) if start_distances else 0,
-           'std': np.std(start_distances) if start_distances else 0,
-           'min': np.min(start_distances) if start_distances else 0,
-           'max': np.max(start_distances) if start_distances else 0,
-           'count': len(start_distances)
-       },
-       'end_distances': {
-           'mean': np.mean(end_distances) if end_distances else 0,
-           'median': np.median(end_distances) if end_distances else 0,
-           'std': np.std(end_distances) if end_distances else 0,
-           'min': np.min(end_distances) if end_distances else 0,
-           'max': np.max(end_distances) if end_distances else 0,
-           'count': len(end_distances)
-       },
-       'overall': {
-           'mean': np.mean(start_distances + end_distances) if (start_distances or end_distances) else 0,
-           'median': np.median(start_distances + end_distances) if (start_distances or end_distances) else 0,
-           'std': np.std(start_distances + end_distances) if (start_distances or end_distances) else 0,
-           'total_points': len(start_distances) + len(end_distances)
-       },
-       'mappings': {
-           'start_original_to_generalized': start_original_to_generalized,
-           'end_original_to_generalized': end_original_to_generalized
-       },
-       'detailed_coords': {
-           'start': start_coords,
-           'end': end_coords
-       }
-   }
-   
-   # 6. Stampa risultati
-   print("\n" + "="*60)
-   print("📏 METRICHE DI DISTANZA POST-GENERALIZZAZIONE")
-   print("="*60)
-   
-   print(f"\n🎯 PUNTI DI PARTENZA:")
-   print(f"   • Distanza media: {results['start_distances']['mean']:.2f} metri")
-   print(f"   • Distanza mediana: {results['start_distances']['median']:.2f} metri")
-   print(f"   • Deviazione standard: {results['start_distances']['std']:.2f} metri")
-   print(f"   • Min-Max: {results['start_distances']['min']:.2f} - {results['start_distances']['max']:.2f} metri")
-   print(f"   • Punti analizzati: {results['start_distances']['count']:,}")
-   
-   print(f"\n🏁 PUNTI DI DESTINAZIONE:")
-   print(f"   • Distanza media: {results['end_distances']['mean']:.2f} metri")
-   print(f"   • Distanza mediana: {results['end_distances']['median']:.2f} metri")
-   print(f"   • Deviazione standard: {results['end_distances']['std']:.2f} metri")
-   print(f"   • Min-Max: {results['end_distances']['min']:.2f} - {results['end_distances']['max']:.2f} metri")
-   print(f"   • Punti analizzati: {results['end_distances']['count']:,}")
-   
-   print(f"\n🌍 COMPLESSIVO:")
-   print(f"   • Distanza media totale: {results['overall']['mean']:.2f} metri")
-   print(f"   • Distanza mediana totale: {results['overall']['median']:.2f} metri")
-   print(f"   • Deviazione standard totale: {results['overall']['std']:.2f} metri")
-   print(f"   • Punti totali: {results['overall']['total_points']:,}")
-   
-   return results
-
 def find_generalized_hexagon(original_h3: str, generalized_hexagons: set) -> str:
    """
    Trova l'esagono generalizzato corrispondente a un esagono originale
@@ -298,7 +152,6 @@ def is_descendant_of(child_h3: str, parent_h3: str) -> bool:
        current = h3.cell_to_parent(current, h3.get_resolution(current) - 1)
    
    return current == parent_h3
-
 
 class GeneralizationMetricATG:
     """
@@ -356,7 +209,6 @@ class GeneralizationMetricATG:
 
         return counts
     
-
 def fast_reconstruction_loss_ATG(original_od_df: pd.DataFrame,
                                        od_matrix_generalized: pd.DataFrame) -> float:
     """
@@ -436,7 +288,6 @@ def fast_reconstruction_loss_ATG(original_od_df: pd.DataFrame,
 
     return total_abs_error / total_volume
 
-
 def compute_discernability_and_cavg_weight_ATG(df: pd.DataFrame, k: int, suppressed_count: int = 0) -> dict:
     """
     Calcola C_DM e C_AVG per un dataset OD generalizzato.
@@ -473,7 +324,6 @@ def compute_discernability_and_cavg_weight_ATG(df: pd.DataFrame, k: int, suppres
         'total_equivalence_classes': total_equiv_classes,
         'k': k
     }
-
 
 class GeneralizationMetricWeightATG:
     """
@@ -530,8 +380,6 @@ class GeneralizationMetricWeightATG:
             counts[gen_hex] = max(count, 1)  # fallback a 1
 
         return counts
-
-
 
 def fast_reconstruction_loss_weight_ATG(original_od_df: pd.DataFrame,
                                        od_matrix_generalized: pd.DataFrame) -> float:
@@ -612,7 +460,6 @@ def fast_reconstruction_loss_weight_ATG(original_od_df: pd.DataFrame,
 
     return total_abs_error / total_volume
 
-
 def compute_discernability_and_cavg_sparse_ODkAnon(sparse_matrix: sp.csr_matrix, od_matrix, suppressed_count: int, k: int) -> dict:
     
     counts = sparse_matrix.data
@@ -641,148 +488,6 @@ def compute_discernability_and_cavg_sparse_ODkAnon(sparse_matrix: sp.csr_matrix,
         'total_equivalence_classes': total_equiv_classes,
         'k': k
     }
-
-
-from geopy.distance import geodesic
-
-def calculate_generalization_distance_metric_ODkAnon(df_merged: pd.DataFrame, generalizer, tree_start, tree_end) -> Dict:
-    
-    print("🔍 Calcolo metrica di distanza post-generalizzazione...")
-    
-    # 1. Ottieni le mappature finali dalla generalizzazione
-    final_start_mapping = generalizer.start_to_idx
-    final_end_mapping = generalizer.end_to_idx
-    
-    # 2. Crea mapping da esagoni originali a esagoni generalizzati
-    start_original_to_generalized = {}
-    end_original_to_generalized = {}
-    
-    # Per ogni esagono originale, trova l'esagono generalizzato corrispondente
-    # In 'start_original_to_generalized' e 'end_original_to_generalized' ci sono gli esagoni generalizzati
-    unique_start_h3 = df_merged['start_h3'].unique()
-    unique_end_h3 = df_merged['end_h3'].unique()
-    
-    print(f"📊 Mappatura {len(unique_start_h3)} esagoni origine...")
-    for original_h3 in unique_start_h3:
-        generalized_h3 = find_generalized_hexagon(original_h3, final_start_mapping, tree_start)
-        if generalized_h3:
-            start_original_to_generalized[original_h3] = generalized_h3
-    
-    print(f"📊 Mappatura {len(unique_end_h3)} esagoni destinazione...")
-    for original_h3 in unique_end_h3:
-        generalized_h3 = find_generalized_hexagon(original_h3, final_end_mapping, tree_end)
-        if generalized_h3:
-            end_original_to_generalized[original_h3] = generalized_h3
-    
-    # 3. Calcola distanze per i punti di partenza
-    # Recupera le coordinate originali e calcola la distanza tra quel punto e l'esagono generalizzato (il centro dell'esagono)
-    start_distances = []
-    start_coords = []
-    
-    for idx, row in df_merged.iterrows():
-        original_h3 = row['start_h3']
-        original_coords = (row['start_lat'], row['start_lon'])
-        
-        if original_h3 in start_original_to_generalized:
-            generalized_h3 = start_original_to_generalized[original_h3]
-            # Funzione utlizzata per trovare il centro di un esagono H3
-            generalized_coords = h3.cell_to_latlng(generalized_h3)
-            
-            # Distanza che tiene conto della curvatura della Terra (più precisa di una distanza euclidea che considera la Terra come piatta)
-            distance = geodesic(original_coords, generalized_coords).meters
-                
-            start_distances.append(distance)
-            start_coords.append({
-                'original_h3': original_h3,
-                'generalized_h3': generalized_h3,
-                'original_coords': original_coords,
-                'generalized_coords': generalized_coords,
-                'distance': distance
-            })
-    
-    # 4. Calcola distanze per i punti di destinazione
-    end_distances = []
-    end_coords = []
-    
-    for idx, row in df_merged.iterrows():
-        original_h3 = row['end_h3']
-        original_coords = (row['end_lat'], row['end_lon'])
-        
-        if original_h3 in end_original_to_generalized:
-            generalized_h3 = end_original_to_generalized[original_h3]
-            generalized_coords = h3.cell_to_latlng(generalized_h3)
-            
-            distance = geodesic(original_coords, generalized_coords).meters
-                
-            end_distances.append(distance)
-            end_coords.append({
-                'original_h3': original_h3,
-                'generalized_h3': generalized_h3,
-                'original_coords': original_coords,
-                'generalized_coords': generalized_coords,
-                'distance': distance
-            })
-    
-    # 5. Calcola statistiche
-    results = {
-        'start_distances': {
-            'mean': np.mean(start_distances) if start_distances else 0,
-            'median': np.median(start_distances) if start_distances else 0,
-            'std': np.std(start_distances) if start_distances else 0,
-            'min': np.min(start_distances) if start_distances else 0,
-            'max': np.max(start_distances) if start_distances else 0,
-            'count': len(start_distances)
-        },
-        'end_distances': {
-            'mean': np.mean(end_distances) if end_distances else 0,
-            'median': np.median(end_distances) if end_distances else 0,
-            'std': np.std(end_distances) if end_distances else 0,
-            'min': np.min(end_distances) if end_distances else 0,
-            'max': np.max(end_distances) if end_distances else 0,
-            'count': len(end_distances)
-        },
-        'overall': {
-            'mean': np.mean(start_distances + end_distances) if (start_distances or end_distances) else 0,
-            'median': np.median(start_distances + end_distances) if (start_distances or end_distances) else 0,
-            'std': np.std(start_distances + end_distances) if (start_distances or end_distances) else 0,
-            'total_points': len(start_distances) + len(end_distances)
-        },
-        'mappings': {
-            'start_original_to_generalized': start_original_to_generalized,
-            'end_original_to_generalized': end_original_to_generalized
-        },
-        'detailed_coords': {
-            'start': start_coords,
-            'end': end_coords
-        }
-    }
-    
-    # 6. Stampa risultati
-    print("\n" + "="*60)
-    print("📏 METRICHE DI DISTANZA POST-GENERALIZZAZIONE")
-    print("="*60)
-    
-    print(f"\n🎯 PUNTI DI PARTENZA:")
-    print(f"   • Distanza media: {results['start_distances']['mean']:.2f} metri")
-    print(f"   • Distanza mediana: {results['start_distances']['median']:.2f} metri")
-    print(f"   • Deviazione standard: {results['start_distances']['std']:.2f} metri")
-    print(f"   • Min-Max: {results['start_distances']['min']:.2f} - {results['start_distances']['max']:.2f} metri")
-    print(f"   • Punti analizzati: {results['start_distances']['count']:,}")
-    
-    print(f"\n🏁 PUNTI DI DESTINAZIONE:")
-    print(f"   • Distanza media: {results['end_distances']['mean']:.2f} metri")
-    print(f"   • Distanza mediana: {results['end_distances']['median']:.2f} metri")
-    print(f"   • Deviazione standard: {results['end_distances']['std']:.2f} metri")
-    print(f"   • Min-Max: {results['end_distances']['min']:.2f} - {results['end_distances']['max']:.2f} metri")
-    print(f"   • Punti analizzati: {results['end_distances']['count']:,}")
-    
-    print(f"\n🌍 COMPLESSIVO:")
-    print(f"   • Distanza media totale: {results['overall']['mean']:.2f} metri")
-    print(f"   • Distanza mediana totale: {results['overall']['median']:.2f} metri")
-    print(f"   • Deviazione standard totale: {results['overall']['std']:.2f} metri")
-    print(f"   • Punti totali: {results['overall']['total_points']:,}")
-    
-    return results
 
 def find_generalized_hexagon(original_h3: str, final_mapping: Dict, tree) -> str:
     """
@@ -814,8 +519,6 @@ def is_descendant_of(child_h3: str, parent_h3: str) -> bool:
         current = h3.cell_to_parent(current, h3.get_resolution(current) - 1)
     
     return current == parent_h3
-
-
 
 class GeneralizationMetricODkAnon:
     """
@@ -900,8 +603,6 @@ class GeneralizationMetricODkAnon:
             
         return total
     
-
-
 # Parte dal nodo h3_id
 # Se è un nodo foglia (nessn figlio/discnedente), lo aggiunge al set
 # Se ha figli, li esplora ricorsivamente
@@ -999,7 +700,6 @@ def fast_reconstruction_loss_ODkAnon(original_od_df: pd.DataFrame,
         total_abs_error += abs(reconstructed_count - true_count)
 
     return total_abs_error / total_volume
-
 
 def fast_reconstruction_loss_weight(original_od_df: pd.DataFrame,
                                   generalized_matrix: sp.csr_matrix,
