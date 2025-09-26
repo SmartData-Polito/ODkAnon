@@ -92,4 +92,59 @@ def compute_discernability_and_cavg_weight(df: pd.DataFrame, k: int, suppressed_
         'total_equivalence_classes': total_equiv_classes,
         'k': k
     }
-    
+
+class GeneralizationMetric:
+    """
+    Ḡ = (1/V+) × Σ(|o| + |d|) × v_{o→d}
+    """
+    def __init__(self, k_threshold: int = 10):
+        self.k_threshold = k_threshold
+
+    def calculate_generalization_error(self, od_matrix_generalized: pd.DataFrame, od_matrix: pd.DataFrame) -> float:
+        # generalized -> number of original cells
+        origin_counts = self._build_hexagon_counts(
+            od_matrix_generalized, od_matrix, column_gen="start_gen", column_orig="start_h3"
+        )
+        destination_counts = self._build_hexagon_counts(
+            od_matrix_generalized, od_matrix, column_gen="end_gen", column_orig="end_h3"
+        )
+
+        total_volume_anonymous = 0
+        weighted_count_sum = 0
+
+        for _, row in od_matrix_generalized.iterrows():
+            flow_value = row["count"]
+            if flow_value >= self.k_threshold:
+                origin_h3 = row["start_gen"]
+                dest_h3   = row["end_gen"]
+
+                origin_count = origin_counts.get(origin_h3, 1)
+                dest_count   = destination_counts.get(dest_h3, 1)
+
+                total_volume_anonymous += flow_value
+                weighted_count_sum += (origin_count + dest_count) * flow_value
+
+        return weighted_count_sum / total_volume_anonymous if total_volume_anonymous > 0 else 0.0
+
+    def _build_hexagon_counts(
+        self, od_matrix_generalized: pd.DataFrame, od_matrix: pd.DataFrame, 
+        column_gen: str, column_orig: str
+    ) -> dict:
+        """
+        Count how many original hexagons belong to each generalized hexagon.
+        """
+        generalized_hexagons = od_matrix_generalized[column_gen].unique()
+        original_hexagons = od_matrix[column_orig].unique()
+
+        counts = {}
+        for gen_hex in generalized_hexagons:
+            target_res = h3.get_resolution(gen_hex)
+
+            # Find all parents of originals at target resolution
+            parent_series = [h3.cell_to_parent(h, target_res) for h in original_hexagons]
+
+            # Count how many times the parent == gen_hex appears
+            count = sum(1 for p in parent_series if p == gen_hex)
+            counts[gen_hex] = max(count, 1)  # fallback to 1
+
+        return counts
