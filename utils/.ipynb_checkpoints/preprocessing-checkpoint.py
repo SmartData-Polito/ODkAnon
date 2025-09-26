@@ -17,8 +17,8 @@ def filter_by_h3_hexagons(df, target_hexagons, resolution=6):
     """
     
     # map latitude and longitude to h3 hexagon
-    df['ori_h3'] = df.apply(lambda row: h3.latlng_to_cell(row['ori_lat'], row['ori_lon'], resolution), axis=1)
-    df['dst_h3'] = df.apply(lambda row: h3.latlng_to_cell(row['dst_lat'], row['dst_lon'], resolution), axis=1)
+    df['ori_h3'] = df.apply(lambda row: h3.latlng_to_cell(row['start_lat'], row['start_lon'], resolution), axis=1)
+    df['dst_h3'] = df.apply(lambda row: h3.latlng_to_cell(row['end_lat'], row['end_lon'], resolution), axis=1)
     
     filtered_df = df[
         (df['ori_h3'].isin(target_hexagons)) & 

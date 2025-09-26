@@ -29,21 +29,31 @@ from typing import Dict, Set, List, Optional, Tuple
 # C_DM : sum of the squares of the sizes of the equivalence classes
 # C_AVG : (total number of records / number of equivalence classes) / k
 
-def compute_discernability_and_cavg_sparse(dfn: pd.DataFrame, k: int) -> dict:
+def compute_discernability_and_cavg(df: pd.DataFrame, k: int, suppressed_count: int = 0) -> dict:
+    """
+    compute C_DM e C_AVG for dataset OD generalization (with suppression).
     
-    od_groups = dfn.groupby(['ori_lon', 'ori_lat', 'dst_lon', 'dst_lat'])['count'].sum().reset_index()
-
-    counts = od_groups['count'].values
-    total_records = counts.sum()
-    total_equiv_classes = len(counts)
-
+    Args:
+        df: DataFrame with column ['start_h3', 'end_h3', 'count']
+        k: for k-anonimity
+        suppressed_count: number of OD pairs suppressed (optional)
+    
+    """
+    counts = df['count'].values
+    total_records = counts.sum() + suppressed_count
+    total_equiv_classes = len(counts) + suppressed_count
+    
     # C_DM: somma dei quadrati dei count >= k
     k_anonymous_counts = counts[counts >= k]
-    c_dm = (k_anonymous_counts ** 2).sum()
-
-    # CAVG: ((total_records / total_equiv_classes) / k)    
+    c_dm_gen = np.sum(k_anonymous_counts**2)
+    
+    # Penalità per record soppressi
+    suppression_penalty = suppressed_count * counts.sum()  # o totale record, a seconda della definizione
+    c_dm = c_dm_gen + suppression_penalty
+    
+    # C_AVG: (total_records / total_equiv_classes) / k
     c_avg = (total_records / total_equiv_classes) / k if total_equiv_classes > 0 else float('inf')
-
+    
     return {
         'C_DM': c_dm,
         'C_AVG': c_avg,
