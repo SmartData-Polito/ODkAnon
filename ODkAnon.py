@@ -27,7 +27,6 @@ from typing import Dict, Set, List, Optional, Tuple
 from utils.h3hierarchy import create_h3_hierarchical_tree
 from utils.metrics import compute_discernability_and_cavg_sparse
 from utils.metrics import compute_discernability_and_cavg_sparse_ODkAnon
-from utils.metrics import calculate_generalization_distance_metric_ODkAnon
 from utils.metrics import GeneralizationMetricODkAnon
 from utils.metrics import fast_reconstruction_loss_ODkAnon
 from utils.metrics import fast_reconstruction_loss_weight
@@ -692,13 +691,6 @@ metrics = compute_discernability_and_cavg_sparse_ODkAnon(sparse_result, od_matri
 print("\n📊 Metrics di Discernibilità e CAVG:")
 print(f"C_DM: {metrics['C_DM']:,}")
 print(f"C_AVG: {metrics['C_AVG']:.4f}")
-
-distance_results = calculate_generalization_distance_metric_ODkAnon(
-    df_merged=filtered_df, 
-    generalizer=generalizer,
-    tree_start=tree_start,
-    tree_end=tree_end
-)
 
 metric = GeneralizationMetricODkAnon(k_threshold=10)
 error = metric.calculate_generalization_error(sparse_result, generalizer)

@@ -22,7 +22,7 @@ from typing import Dict, Set, List, Optional, Tuple
 
 from utils.h3hierarchy import create_h3_hierarchical_tree
 from utils.metrics import compute_discernability_and_cavg_sparse
-from utils.metrics import calculate_generalization_distance_metric_ATG
+from utils.metrics import compute_discernability_and_cavg_ATG
 from utils.metrics import GeneralizationMetricATG
 from utils.metrics import fast_reconstruction_loss_ATG
 from utils.metrics import compute_discernability_and_cavg_weight_ATG
@@ -448,24 +448,20 @@ od_matrix_agg
 # Results and visualization
 
 visualizer = H3FoliumODVisualizerATG(od_matrix_agg)
-
 mappa = visualizer.create_base_map(zoom_start=11)
 visualizer.add_origin_hexagons(mappa)
 visualizer.add_destination_hexagons(mappa)
 folium.LayerControl(collapsed=False).add_to(mappa)
 mappa
 
-
-distance_results = calculate_generalization_distance_metric_ATG(
-   df=filtered_df, 
-   od_matrix_generalized=od_matrix_agg
-)
-
+metrics = compute_discernability_and_cavg_ATG(od_matrix_agg, k=10, suppressed_count=suppressed_count)
+print("\n📊 Metrics di Discernibilità e CAVG:")
+print(f"C_DM: {metrics['C_DM']:,}")
+print(f"C_AVG: {metrics['C_AVG']:.4f}")
 
 metric = GeneralizationMetricATG(k_threshold=10)
 error = metric.calculate_generalization_error(od_matrix_agg, od_matrix)
 print(f"Errore di generalizzazione medio Ḡ: {error:.3f}")
-
 
 loss = fast_reconstruction_loss_ATG(
     original_od_df=od_matrix,
@@ -473,17 +469,14 @@ loss = fast_reconstruction_loss_ATG(
 )
 print(f"Reconstruction Loss: {loss:.6f}")
 
-
 metrics = compute_discernability_and_cavg_weight_ATG(od_matrix_agg, k=10*media_peso, suppressed_count=suppressed_count)
 print("\n📊 Metrics di Discernibilità e CAVG:")
 print(f"C_DM: {metrics['C_DM']:,}")
 print(f"C_AVG: {metrics['C_AVG']:.4f}")
 
-
 metric = GeneralizationMetricWeightATG(k_threshold=10*media_peso)
 error = metric.calculate_generalization_error(od_matrix_agg, od_matrix)
 print(f"Errore di generalizzazione medio Ḡ: {error:.3f}")
-
 
 loss = fast_reconstruction_loss_weight_ATG(
     original_od_df=od_matrix,
